@@ -59,6 +59,10 @@ class Config:
     result_dir: str = "results/garden"
     # Every N images there is a test image
     test_every: int = 8
+    # train list where there is the subset of dataset (different configurations)
+    train_list: Optional[str] = None
+    # test list where put the testset unique for different configurations
+    test_list: Optional[str] = None
     # Random crop size for training  (experimental)
     patch_size: Optional[int] = None
     # A global scaler that applies to the scene size related parameters
@@ -342,8 +346,15 @@ class Runner:
             split="train",
             patch_size=cfg.patch_size,
             load_depths=cfg.depth_loss,
+            names_file=cfg.train_list,
         )
-        self.valset = Dataset(self.parser, split="val")
+        self.valset = Dataset(self.parser, split="val", names_file=cfg.test_list,)
+
+        # controllo di sicurezza: nessun frame in comune
+        assert not set(self.trainset.indices) & set(self.valset.indices)
+        print(f"Train: {len(self.trainset)} frame, Test: {len(self.valset)} frame")
+
+
         self.scene_scale = self.parser.scene_scale * 1.1 * cfg.global_scale
         print("Scene scale:", self.scene_scale)
 
@@ -936,7 +947,8 @@ class Runner:
                 masks=masks,
             )  # [1, H, W, 3]
             torch.cuda.synchronize()
-            ellipse_time += max(time.time() - tic, 1e-10)
+            if i > 0:  # salta il warm-up di CUDA
+                ellipse_time += max(time.time() - tic, 1e-10)
 
             colors = torch.clamp(colors, 0.0, 1.0)
             canvas_list = [pixels, colors]
@@ -963,7 +975,8 @@ class Runner:
                     metrics["cc_lpips"].append(self.lpips(cc_colors_p, pixels_p))
 
         if world_rank == 0:
-            ellipse_time /= len(valloader)
+            ellipse_time /= len(len(valloader) - 1, 1)
+            #stats["fps"] = 1.0 / ellipse_time
 
             stats = {k: torch.stack(v).mean().item() for k, v in metrics.items()}
             stats.update(

@@ -357,6 +357,7 @@ class Dataset:
         split: str = "train",
         patch_size: Optional[int] = None,
         load_depths: bool = False,
+        names_file=None,
     ):
         self.parser = parser
         self.split = split
