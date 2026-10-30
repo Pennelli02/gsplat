@@ -364,10 +364,18 @@ class Dataset:
         self.patch_size = patch_size
         self.load_depths = load_depths
         indices = np.arange(len(self.parser.image_names))
-        if split == "train":
-            self.indices = indices[indices % self.parser.test_every != 0]
+        if names_file is not None:
+            with open(names_file) as f:
+                wanted = [l.strip() for l in f if l.strip()]
+            name_to_idx = {n: i for i, n in enumerate(parser.image_names)}
+            missing = [n for n in wanted if n not in name_to_idx]
+            assert not missing, f"Frame non presenti in COLMAP: {missing[:5]}"
+            self.indices = np.array(sorted(name_to_idx[n] for n in wanted))
         else:
-            self.indices = indices[indices % self.parser.test_every == 0]
+            if split == "train":
+                self.indices = indices[indices % self.parser.test_every != 0]
+            else:
+                self.indices = indices[indices % self.parser.test_every == 0]
 
     def __len__(self):
         return len(self.indices)
