@@ -975,7 +975,7 @@ class Runner:
                     metrics["cc_lpips"].append(self.lpips(cc_colors_p, pixels_p))
 
         if world_rank == 0:
-            ellipse_time /= len(len(valloader) - 1, 1)
+            ellipse_time /= max(len(valloader) - 1, 1)
             #stats["fps"] = 1.0 / ellipse_time
 
             stats = {k: torch.stack(v).mean().item() for k, v in metrics.items()}
